@@ -8,7 +8,7 @@ import (
 )
 
 func testCurves() []Curve {
-	return []Curve{E222(), E382(), Ed448Goldilocks(), E521(), Curve1174(), Curve41417()}
+	return []Curve{E222(), E382(), E521(), Ed448Goldilocks(), Curve1174(), Curve41417()}
 }
 
 func TestScalarMultZero(t *testing.T) {
@@ -49,14 +49,14 @@ func TestScalarMultTwo(t *testing.T) {
 		}
 		assert.True(t, crv.IsOnCurve(x0, y0), "Generated P must be on curve")
 
-		rx, ry := crv.ScalarMult(x0, y0, []byte{0, 2})
+		rx, ry := crv.ScalarMult(x0, y0, []byte{2})
 		assert.True(t, crv.IsOnCurve(rx, ry), "2*P must be on curve")
 
 		sx, sy := crv.Add(x0, y0, x0, y0)
 		assert.True(t, crv.IsOnCurve(sx, sy), "P+P must be on curve")
 
-		assert.Equal(t, rx, sx, "")
-		assert.Equal(t, ry, sy)
+		assert.Equal(t, rx, sx, "(2*P).X != (P+P).X")
+		assert.Equal(t, ry, sy, "(2*P).Y != (P+P).Y")
 	}
 }
 
@@ -163,5 +163,21 @@ func TestNeutralScalarMult(t *testing.T) {
 		x, y = crv.ScalarMult(zero, one, []byte{2})
 		assert.Equal(t, zero, x, "(2*E).X != 0")
 		assert.Equal(t, one, y, "(2*E).Y != 1")
+	}
+}
+
+func TestKnownPoints(t *testing.T) {
+	for _, crv := range testCurves() {
+		x, y := crv.ScalarMult(zero, big.NewInt(-1), []byte{2})
+		assert.Equal(t, zero, x, "(2*(0, -1)).X != 0")
+		assert.Equal(t, one, y, "(2*(0, -1)).Y != 1")
+
+		x, y = crv.ScalarMult(one, zero, []byte{4})
+		assert.Equal(t, zero, x, "(2*(1, 0)).X != 0")
+		assert.Equal(t, one, y, "(2*(1, 0)).Y != 1")
+
+		x, y = crv.ScalarMult(big.NewInt(-1), zero, []byte{4})
+		assert.Equal(t, zero, x, "(4*(-1, 0)).X != 0")
+		assert.Equal(t, one, y, "(4*(-1, 0)).Y != 1")
 	}
 }
